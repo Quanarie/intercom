@@ -6,4 +6,7 @@ scikit-learn
 torch
 torchaudio
 tqdm
+streamlit
+sounddevice
+scipy
 
