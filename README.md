@@ -33,6 +33,18 @@ The notebook:
 
 ---
 
+# GUI
+
+To start web ui app:
+
+./run_app.sh
+
+or 
+
+./run_app.bat for windows
+
+---
+
 ## 📦 1. Installation
 
 ### **Python version**
