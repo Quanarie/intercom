@@ -27,19 +27,11 @@ from datetime import datetime
 
 # ==================== MODEL ARCHITECTURE ====================
 class CNN(nn.Module):
-    """
-    Simplified CNN model matching the actual saved model architecture.
-    - 2 Conv2d layers with implicit pooling/downsampling
-    - 1 FC output layer
-    """
     def __init__(self, n_mels=64):
         super(CNN, self).__init__()
         self.c1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
         self.c2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
         
-        # The saved model has pooling or striding that reduces dimensions
-        # 64 x 200 -> 16 x 50 after pooling by 4
-        # So flattened size: 32 * 16 * 50 = 25,600
         self.pool = nn.MaxPool2d(2)
         
         self.fc = nn.Linear(32 * 16 * 50, 2)
@@ -58,7 +50,7 @@ class CNN(nn.Module):
         return x
 
 
-# ==================== AUDIO PROCESSING ====================
+# AUDIO PROCESSING
 def load_audio(file_path, sr=16000):
     """Load audio file and return waveform and sample rate"""
     try:
@@ -121,7 +113,7 @@ def plot_spectrogram(mel_spec, title="Mel-Spectrogram"):
     return fig
 
 
-# ==================== MODEL OPERATIONS ====================
+# MODEL OPERATIONS
 @st.cache_resource
 def load_model(model_path, device='cpu'):
     """Load trained model"""
@@ -164,7 +156,7 @@ def get_available_models(models_dir='./models'):
     return models
 
 
-# ==================== STREAMLIT UI ====================
+# UI
 def main():
     st.set_page_config(
         page_title="Voice Intercom Classification",
@@ -206,7 +198,7 @@ def main():
     
     # Main content area
     
-    # ==================== TEST AUDIO ====================
+    # TEST AUDIO
         st.subheader("🎙️ Test Audio")
         st.markdown("Choose how to provide test audio")
         
@@ -259,7 +251,7 @@ def main():
                 sr = st.session_state['recorded_sr']
                 test_mel_spec = audio_to_mel_spectrogram(test_audio, sr=sr)
     
-    # ==================== PREDICTION ====================
+    # PREDICTION
     st.divider()
     st.subheader("🔍 Classification Results")
     
@@ -319,7 +311,7 @@ def main():
     else:
         st.info("👆 Please upload or record test audio to see predictions")
     
-    # ==================== FOOTER ====================
+    # FOOTER
     st.divider()
     st.markdown("---")
     col_footer_1, col_footer_2, col_footer_3 = st.columns(3)

@@ -1,162 +1,246 @@
-Рецепт домашних пряников. Сука, они настолько хорошие, что после 1 штуки твой муж точно сойдёт с ума. Теперь слушай внимательно, я открою тебе секрет:
+# IML Project
 
-Взяв 4 стакана муки,
-
-Смешай её с 2 стаканами сахара,
-
-Добавь половину чайной ложки корицы и щепоткуимбиря.
-
-Потом, блять перемешай всё это тесто и засунь его в духовку на чуть больше 35 минут с температурой 200 градусов, охлада 20 минут и готово блять.
-
-Пряники, рецепт домашних пряников. Пряники домашние.
-
-Нахуй магазин, домашние пряники, дома, ждут пряники.
-
-Домашний пряник, пряник.
-
-Домашнее видео прянички, вкусно и пряник, пряники в доме, пряники с плеткой. Пряники боевик. Пряник фото, пряник видео. Голый пряник фотографии, картина с пряником.
-
-
-# Voice Access Recognition – Milestone 1
-
-This project trains a simple convolutional neural network (CNN) to classify
-voice recordings as **allowed** or **not allowed** based on spectrograms.
-
-The notebook:
-- Loads and cleans audio data
-- Converts recordings into mel-spectrograms
-- Balances the dataset between allowed/not_allowed classes
-- Trains a CNN in an infinite loop (until you stop it)
-- Saves model checkpoints to `/models`
-- Saves training plots (loss + F1) to `/outputs`
-- Allows testing your own audio file in the last cell
+The code covers data loading, exploration, preprocessing, augmentation, model training, evaluation, and visualization.
 
 ---
 
-# GUI
+## 1. Project Structure
 
-To start web ui app:
-
-./run_app.sh
-
-or 
-
-./run_app.bat for windows
-
----
-
-## 📦 1. Installation
-
-### **Python version**
-This project uses:
-3.10.12
-
-
-Make sure to install this version if you are using pyenv or similar tools.
-
----
-
-## 📦 2. Install dependencies
-
-Inside your virtual environment run:
-
-pip install -r requirements.txt
-
-
----
-
-## 📁 3. Dataset Structure
-
-Your dataset folder must look like:
-
-dataset/
+```
+project/
 │
-├── allowed/
-│ ├── Speaker_0001/
-│ ├── Speaker_0002/
-│ └── ...
+├── dataset/
+│   ├── allowed/        # Class 1 audio (.wav)
+│   └── not_allowed/    # Class 0 audio (.wav)
 │
-└── not_allowed/
-├── Speaker_0001/
-├── Speaker_0002/
-└── ...
-
-
-Each speaker contains WAV audio files.
+├── models/             # Saved model checkpoints
+├── outputs/            # Training curves (loss & F1)
+├── notebook.py / .ipynb
+└── README.md
+```
 
 ---
 
-## ▶️ 4. Running the Notebook
+## 2. Requirements
 
-1. Open **Jupyter Notebook** or **JupyterLab**
-2. Run the notebook **top to bottom**
-3. Training begins in the last training cell  
-   (it runs **forever** until you stop it with the Stop button)
+Python libraries used:
+- numpy
+- matplotlib
+- librosa
+- soundfile
+- scikit‑learn
+- torch
 
-This cell will save:
-
-### ✔ Model checkpoints  
-Saved in:
-./models/model_epoch_XX.pth
-
-
-### ✔ Training plots  
-Saved in:
-./outputs/epoch_XXX.png
-
+Make sure PyTorch and librosa are installed before running.
 
 ---
 
-## 🎤 5. Testing Your Own Audio Recording
+## 3. Configuration Parameters
 
-At the very bottom of the notebook, you will find this test cell:
+All global configuration is defined in the **Args class** near the top of the file:
 
 ```python
-import librosa
-import numpy as np
-import torch
+args.data = "./dataset"      # Dataset root folder
+args.sr = 16000               # Audio sample rate
+args.n_mels = 64              # Number of Mel bands
+args.fixed_length = 200       # Time frames per spectrogram
 
-# Make sure the model class is defined above in the notebook:
-model = SimpleConvNet()
-model.load_state_dict(torch.load("./models/model_epoch_XX.pth"))  # <---- CHANGE THIS 
-model.eval()
+args.batch_size = 32
+args.lr = 1e-3                # Learning rate
+args.weight_decay = 1e-4      # L2 regularization
 
-def preprocess_audio(path):
-    y, sr = librosa.load(path, sr=args.sr)
+args.test_size = 0.15         # Test split
+args.val_size = 0.15          # Validation split
+```
 
-    S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=args.n_mels)
-    S = librosa.power_to_db(S, ref=np.max)
+These parameters control **data resolution, training speed, and regularization**.
 
-    # Standardize
-    S = (S - S.mean()) / (S.std() + 1e-9)
+---
 
-    # Fix length to 200 frames
-    if S.shape[1] < 200:
-        pad = 200 - S.shape[1]
-        S = np.pad(S, ((0, 0), (0, pad)), mode='constant')
-    else:
-        S = S[:, :200]
+## 4. Dataset Handling
 
-    return torch.tensor(S).unsqueeze(0).unsqueeze(0).float()
+### File Discovery
 
-test_file = "my_voice.wav" # <---- CHANGE THIS 
+Audio files are collected using:
+```python
+build_filelist(root)
+```
+Expected folder names:
+- `allowed` → label 1
+- `not_allowed` → label 0
 
-X = preprocess_audio(test_file)
+### Class Balancing
 
-with torch.no_grad():
-    out = model(X)
-    pred = out.argmax(1).item()
+The dataset is **balanced manually** by down‑sampling the larger class:
+```python
+allowed = random.sample(allowed, min_len)
+not_allowed = random.sample(not_allowed, min_len)
+```
 
-print("Prediction:", "ALLOWED" if pred == 1 else "NOT ALLOWED")
+---
 
-✔ How to use it:
+## 5. Exploratory Data Analysis (EDA)
 
-1)Put a WAV file in the project folder (e.g., my_voice.wav)
+A histogram of audio durations is plotted using:
+```python
+librosa.get_duration()
+```
+This helps justify the choice of `fixed_length`.
 
-2)Modify:
-test_file = "my_voice.wav"
+---
 
-3)Modify which model to load:
-model.load_state_dict(torch.load("./models/model_epoch_10.pth"))
+## 6. Audio Preprocessing Pipeline
 
-4)Run the cell
+### 6.1 Audio Loading
+
+```python
+load_audio(path, sr)
+```
+- Resamples audio to `args.sr`
+
+### 6.2 Spectrogram Creation
+
+```python
+make_mel(y, sr)
+```
+Inside this function:
+- Mel spectrogram is computed
+- **Log scaling (normalization #1)** is applied:
+```python
+librosa.power_to_db(S, ref=np.max)
+```
+
+### 6.3 Statistical Normalization (Normalization #2)
+
+Inside `SpectrogramDataset.__getitem__`:
+```python
+S = (S - S.mean()) / (S.std() + 1e-9)
+```
+This enforces **zero mean and unit variance per sample**.
+
+---
+
+## 7. Data Augmentation (Overfitting Control)
+
+Enabled only for **training data**:
+
+```python
+SpectrogramDataset(train_pairs, augment=True)
+```
+
+Augmentations include:
+- Additive noise (`add_noise`)
+- Pitch shifting (`pitch_shift`)
+- Time stretching (`time_stretch`)
+
+These are defined inside the `SpectrogramDataset` class.
+
+---
+
+## 8. Train / Validation / Test Split
+
+Performed using **stratified splitting**:
+```python
+train_test_split(..., stratify=labels)
+```
+
+Resulting loaders:
+- `train_loader` (augmented)
+- `val_loader` (clean)
+- `test_loader` (clean, acts as "real test")
+
+---
+
+## 9. Model Architecture
+
+Defined in `SimpleConvNet`:
+
+```python
+Conv2d → ReLU → MaxPool
+Conv2d → ReLU → MaxPool
+Dropout(0.3)
+Fully Connected → 2 classes
+```
+
+### Dropout Location
+
+```python
+self.dropout = nn.Dropout(0.3)
+```
+Applied **after convolution layers**, before the classifier.
+
+---
+
+## 10. Optimization & Loss
+
+Defined at the start of the training cell:
+
+```python
+criterion = nn.CrossEntropyLoss()
+optimizer = Adam(
+    model.parameters(),
+    lr=args.lr,
+    weight_decay=args.weight_decay
+)
+```
+
+- **Adam optimizer**
+- **Weight decay** = L2 regularization
+
+---
+
+## 11. Training Loop
+
+- Runs in an **infinite loop** (Ctrl+C to stop)
+- Tracks:
+  - Loss
+  - Train F1
+  - Validation F1
+  - Real Test F1
+
+Metrics are computed using:
+```python
+f1_score(..., average="macro")
+```
+
+---
+
+## 12. Evaluation
+
+Evaluation logic is separated in:
+```python
+evaluate(model, loader)
+```
+
+Used for validation and test sets.
+
+---
+
+## 13. Outputs & Checkpoints
+
+### Model Saving
+
+Each epoch:
+```python
+torch.save(model.state_dict(), "./models/model_epoch_X.pth")
+```
+
+### Training Curves
+
+Saved to `./outputs/`:
+- Loss
+- Train F1
+- Validation F1
+- Real Test F1
+
+Plotted automatically per epoch.
+
+---
+
+## 14. How to Run
+
+1. Place dataset in `./dataset/allowed` and `./dataset/not_allowed`
+2. Run the notebook / script from top to bottom
+3. Stop training manually when convergence is reached (Ctrl+C)
+
+---
